@@ -18,7 +18,10 @@ export default function Home() {
 
   async function startRecording() {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    const mediaRecorder = new MediaRecorder(stream)
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'audio/webm;codecs=opus',
+    })
+
 
     mediaRecorderRef.current = mediaRecorder
     chunksRef.current = []
@@ -30,7 +33,7 @@ export default function Home() {
     mediaRecorder.onstop = async () => {
       setLoading(true)
 
-      const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
+      const audioBlob = new Blob(chunksRef.current, { type: 'audio/wav' })
       const formData = new FormData()
       formData.append('audio', audioBlob)
 
@@ -78,8 +81,8 @@ export default function Home() {
         {loading
           ? 'Processando áudio e gerando resposta...'
           : recording
-          ? 'Gravação em andamento'
-          : 'Pronto para iniciar gravação'}
+            ? 'Gravação em andamento'
+            : 'Pronto para iniciar gravação'}
       </p>
 
       <ResultCard
