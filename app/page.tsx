@@ -17,49 +17,70 @@ export default function Home() {
   const chunksRef = useRef<Blob[]>([])
 
   async function startRecording() {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-    const mediaRecorder = new MediaRecorder(stream)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
 
-    mediaRecorderRef.current = mediaRecorder
-    chunksRef.current = []
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      const mimeType = isIOS ? 'audio/mp4' : 'audio/webm'
 
-    mediaRecorder.ondataavailable = (event) => {
-      chunksRef.current.push(event.data)
+      const mediaRecorder = new MediaRecorder(stream, { mimeType })
+
+      mediaRecorderRef.current = mediaRecorder
+      chunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = async () => {
+        setLoading(true)
+
+        const audioBlob = new Blob(chunksRef.current, { type: mimeType })
+        const formData = new FormData()
+        formData.append('audio', audioBlob)
+
+        try {
+          const response = await fetch('/api/transcribe', {
+            method: 'POST',
+            body: formData,
+          })
+
+          const data = await response.json()
+          setText(data.text)
+
+          const chatResponse = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: data.text }),
+          })
+
+          const chatData = await chatResponse.json()
+          setAnswer(chatData.answer)
+        } catch (err) {
+          alert('Erro ao processar o áudio.')
+          console.error(err)
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      mediaRecorder.start()
+      setRecording(true)
+    } catch (err) {
+      alert('Permissão de microfone negada ou não disponível.')
+      console.error(err)
     }
-
-    mediaRecorder.onstop = async () => {
-      setLoading(true)
-
-      const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
-      const formData = new FormData()
-      formData.append('audio', audioBlob)
-
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const data = await response.json()
-      setText(data.text)
-
-      const chatResponse = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: data.text }),
-      })
-
-      const chatData = await chatResponse.json()
-      setAnswer(chatData.answer)
-
-      setLoading(false)
-    }
-
-    mediaRecorder.start()
-    setRecording(true)
   }
 
   function stopRecording() {
     mediaRecorderRef.current?.stop()
+
+    mediaRecorderRef.current?.stream
+      .getTracks()
+      .forEach((track) => track.stop())
+
     setRecording(false)
   }
 
@@ -91,7 +112,7 @@ export default function Home() {
       <ResultCard
         title="Resposta da IA"
         content={answer}
-        placeholder="Aguardando resposta.."
+        placeholder="Aguardando resposta."
       />
     </Container>
   )
