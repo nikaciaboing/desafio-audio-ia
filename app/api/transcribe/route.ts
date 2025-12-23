@@ -14,19 +14,17 @@ export async function POST(req: Request) {
 
     if (!audio) {
       return NextResponse.json(
-        { error: 'Áudio não recebido' },
+        { error: 'Áudio não enviado' },
         { status: 400 }
       )
     }
 
     const transcription = await openai.audio.transcriptions.create({
       file: audio,
-      model: 'gpt-4o-transcribe',
+      model: 'whisper-1',
     })
 
-    return NextResponse.json({
-      text: transcription.text,
-    })
+    return NextResponse.json({ text: transcription.text })
   } catch (error) {
     console.error('TRANSCRIBE ERROR:', error)
     return NextResponse.json(
