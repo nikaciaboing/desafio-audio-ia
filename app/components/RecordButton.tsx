@@ -1,4 +1,4 @@
-interface Props {
+type Props = {
   recording: boolean
   loading: boolean
   onStart: () => void
@@ -11,39 +11,34 @@ export default function RecordButton({
   onStart,
   onStop,
 }: Props) {
+  if (loading) {
+    return (
+      <button
+        disabled
+        className="w-full bg-slate-300 text-slate-600 py-4 rounded-lg text-sm font-medium mb-4"
+      >
+        Processando áudio...
+      </button>
+    )
+  }
+
+  if (recording) {
+    return (
+      <button
+        onClick={onStop}
+        className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-lg text-sm font-medium mb-4"
+      >
+        Parar gravação
+      </button>
+    )
+  }
+
   return (
-    <div className="flex justify-center mb-6">
-      {!recording ? (
-        <button
-          onClick={onStart}
-          disabled={loading}
-          className="
-            w-45 h-15 rounded-full
-            bg-slate-900 text-white
-            font-medium
-            shadow-md
-            hover:bg-slate-800
-            transition
-            disabled:opacity-50
-          "
-        >
-          Iniciar gravação
-        </button>
-      ) : (
-        <button
-          onClick={onStop}
-          className="
-            w-32 h-32 rounded-full
-            bg-slate-600 text-white
-            font-medium
-            shadow-md
-            hover:bg-slate-500
-            transition
-          "
-        >
-          Parar
-        </button>
-      )}
-    </div>
+    <button
+      onClick={onStart}
+      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-lg text-sm font-medium mb-4"
+    >
+      Iniciar gravação
+    </button>
   )
 }
